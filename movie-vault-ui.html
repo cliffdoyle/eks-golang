@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MovieVault — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0a0f;
+    --surface:   #111118;
+    --card:      #16161f;
+    --border:    #2a2a38;
+    --accent:    #e8c84a;
+    --accent2:   #4a9ee8;
+    --danger:    #e84a4a;
+    --success:   #4ae89a;
+    --text:      #e8e8f0;
+    --muted:     #6b6b80;
+    --font-head: 'Bebas Neue', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Noise texture overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 40px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .logo h1 {
+    font-family: var(--font-head);
+    font-size: 32px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .logo span {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* Config bar */
+  .config-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+  }
+
+  .config-bar label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  .config-bar input {
+    background: transparent;
+    border: none;
+    color: var(--accent2);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    width: 320px;
+    outline: none;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .status-dot.online { background: var(--success); box-shadow: 0 0 6px var(--success); }
+  .status-dot.offline { background: var(--danger); }
+
+  /* ── Main layout ── */
+  main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Panels ── */
+  .panel {
+    padding: 32px 40px;
+    border-right: 1px solid var(--border);
+  }
+  .panel:last-child { border-right: none; }
+
+  .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .panel-icon.inv { background: rgba(232, 200, 74, 0.12); }
+  .panel-icon.ord { background: rgba(74, 158, 232, 0.12); }
+
+  .panel-title h2 {
+    font-family: var(--font-head);
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+
+  .panel-title .port {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  /* ── Section ── */
+  .section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .section:hover { border-color: #3a3a50; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+    transition: background 0.15s;
+  }
+  .section-header:hover { background: rgba(255,255,255,0.02); }
+  .section-header.open { border-bottom-color: var(--border); }
+
+  .method-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+  .get  { background: rgba(74,232,154,0.15); color: var(--success); }
+  .post { background: rgba(74,158,232,0.15); color: var(--accent2); }
+  .put  { background: rgba(232,200,74,0.15); color: var(--accent); }
+  .del  { background: rgba(232,74,74,0.15);  color: var(--danger); }
+
+  .endpoint-path {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .endpoint-desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  .chevron {
+    margin-left: 6px;
+    color: var(--muted);
+    font-size: 10px;
+    transition: transform 0.2s;
+  }
+  .open .chevron { transform: rotate(180deg); }
+
+  .section-body {
+    display: none;
+    padding: 16px;
+    gap: 10px;
+    flex-direction: column;
+    animation: fadeIn 0.15s ease;
+  }
+  .section-body.visible { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Form elements ── */
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .field label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .field input, .field select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--accent2);
+  }
+  .field select option { background: var(--surface); }
+
+  .fields-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    font-family: var(--font-head);
+    font-size: 14px;
+    letter-spacing: 1.5px;
+    padding: 9px 20px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+  .btn-primary:hover { background: #f0d560; transform: translateY(-1px); }
+
+  .btn-blue {
+    background: var(--accent2);
+    color: #000;
+  }
+  .btn-blue:hover { background: #62b0f0; transform: translateY(-1px); }
+
+  .btn-danger {
+    background: var(--danger);
+    color: #fff;
+  }
+  .btn-danger:hover { background: #f06060; transform: translateY(-1px); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+
+  .btn:active { transform: scale(0.97); }
+
+  /* ── Response area ── */
+  .response-area {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    min-height: 60px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    transition: border-color 0.3s;
+    position: relative;
+  }
+  .response-area.success { border-color: rgba(74,232,154,0.4); color: var(--success); }
+  .response-area.error   { border-color: rgba(232,74,74,0.4);  color: var(--danger); }
+  .response-area.loading { color: var(--accent); }
+
+  .response-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+  }
+
+  /* ── Movies list ── */
+  .movies-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .movie-card {
+    display: grid;
+    grid-template-columns: 32px 1fr auto auto auto;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    animation: slideIn 0.2s ease;
+    transition: border-color 0.2s;
+  }
+  .movie-card:hover { border-color: #3a3a50; }
+
+  @keyframes slideIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+  .movie-id {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .movie-info .title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .movie-info .meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .stock-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(74,232,154,0.1);
+    color: var(--success);
+    white-space: nowrap;
+  }
+  .stock-badge.low { background: rgba(232,200,74,0.1); color: var(--accent); }
+  .stock-badge.zero { background: rgba(232,74,74,0.1); color: var(--danger); }
+
+  .genre-tag {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  /* ── Orders list ── */
+  .order-card {
+    display: grid;
+    grid-template-columns: 32px 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    animation: slideIn 0.2s ease;
+  }
+
+  .status-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .status-badge.confirmed  { background: rgba(74,232,154,0.1); color: var(--success); }
+  .status-badge.pending    { background: rgba(232,200,74,0.1); color: var(--accent); }
+  .status-badge.cancelled  { background: rgba(232,74,74,0.1);  color: var(--danger); }
+
+  /* ── Divider ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 0;
+  }
+
+  /* ── Empty state ── */
+  .empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text);
+    z-index: 999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 320px;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { border-color: var(--success); color: var(--success); }
+  #toast.error   { border-color: var(--danger);  color: var(--danger); }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── Kafka log panel ── */
+  .kafka-log {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 160px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .kafka-log-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 24px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .kafka-log-header span {
+    font-family: var(--font-head);
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+
+  .pulse {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(232,200,74,0.4); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(232,200,74,0); }
+  }
+
+  .kafka-entries {
+    overflow-y: auto;
+    padding: 8px 24px;
+    flex: 1;
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  .kafka-entry {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 0;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .kafka-time { color: var(--muted); flex-shrink: 0; }
+  .kafka-event-type { color: var(--accent); flex-shrink: 0; min-width: 160px; }
+  .kafka-payload { color: var(--text); opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── Bottom padding for kafka log ── */
+  main { padding-bottom: 160px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="logo">
+    <h1>MOVIEVAULT</h1>
+    <span>microservices admin</span>
+  </div>
+
+  <div style="display:flex; gap:12px; align-items:center;">
+    <!-- Inventory URL -->
+    <div class="config-bar">
+      <span class="status-dot" id="inv-dot"></span>
+      <label>Inventory</label>
+      <input type="text" id="inv-url" value="http://localhost:8080"
+             placeholder="http://YOUR_INVENTORY_LB"
+             onchange="saveUrls()" />
+    </div>
+
+    <!-- Order URL -->
+    <div class="config-bar">
+      <span class="status-dot" id="ord-dot"></span>
+      <label>Orders</label>
+      <input type="text" id="ord-url" value="http://localhost:8081"
+             placeholder="http://YOUR_ORDER_LB"
+             onchange="saveUrls()" />
+    </div>
+
+    <button class="btn btn-ghost" onclick="checkHealth()">⟳ Ping</button>
+  </div>
+</header>
+
+<!-- ═══ MAIN PANELS ═══ -->
+<main>
+
+  <!-- ════════ INVENTORY PANEL ════════ -->
+  <div class="panel">
+    <div class="panel-title">
+      <div class="panel-icon inv">🎬</div>
+      <h2>INVENTORY</h2>
+      <span class="port">:8080</span>
+    </div>
+
+    <!-- GET all movies -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="method-badge get">GET</span>
+        <span class="endpoint-path">/movies</span>
+        <span class="endpoint-desc">List all movies</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body visible">
+        <button class="btn btn-ghost" onclick="getMovies()">▶ Fetch Movies</button>
+        <div id="movies-list" class="movies-grid">
+          <div class="empty">Click "Fetch Movies" to load inventory</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POST create movie -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="method-badge post">POST</span>
+        <span class="endpoint-path">/movies</span>
+        <span class="endpoint-desc">Add a movie</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="field">
+          <label>Title</label>
+          <input type="text" id="new-title" placeholder="e.g. Inception" />
+        </div>
+        <div class="fields-row">
+          <div class="field">
+            <label>Genre</label>
+            <select id="new-genre">
+              <option>Sci-Fi</option>
+              <option>Action</option>
+              <option>Drama</option>
+              <option>Comedy</option>
+              <option>Horror</option>
+              <option>Thriller</option>
+              <option>Animation</option>
+              <option>Documentary</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Year</label>
+            <input type="number" id="new-year" placeholder="2024" value="2024" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Stock</label>
+          <input type="number" id="new-stock" placeholder="50" value="50" />
+        </div>
+        <button class="btn btn-primary" onclick="createMovie()">＋ Add Movie → publishes to Kafka</button>
+        <div class="response-label">Response</div>
+        <div class="response-area" id="create-response">—</div>
+      </div>
+    </div>
+
+    <!-- PUT update stock -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="method-badge put">PUT</span>
+        <span class="endpoint-path">/movies/:id</span>
+        <span class="endpoint-desc">Update stock → Kafka event</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="fields-row">
+          <div class="field">
+            <label>Movie ID</label>
+            <input type="number" id="upd-id" placeholder="1" />
+          </div>
+          <div class="field">
+            <label>New Stock</label>
+            <input type="number" id="upd-stock" placeholder="25" />
+          </div>
+        </div>
+        <button class="btn btn-primary" style="background:var(--accent)" onclick="updateStock()">↑ Update Stock → Kafka event</button>
+        <div class="response-label">Response</div>
+        <div class="response-area" id="update-response">—</div>
+      </div>
+    </div>
+
+    <!-- DELETE movie -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="method-badge del">DEL</span>
+        <span class="endpoint-path">/movies/:id</span>
+        <span class="endpoint-desc">Delete → cancels orders</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="field">
+          <label>Movie ID</label>
+          <input type="number" id="del-id" placeholder="1" />
+        </div>
+        <button class="btn btn-danger" onclick="deleteMovie()">🗑 Delete Movie → Kafka event</button>
+        <div class="response-label">Response</div>
+        <div class="response-area" id="delete-response">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ ORDER PANEL ════════ -->
+  <div class="panel">
+    <div class="panel-title">
+      <div class="panel-icon ord">🛒</div>
+      <h2>ORDERS</h2>
+      <span class="port">:8081</span>
+    </div>
+
+    <!-- GET orders -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="method-badge get">GET</span>
+        <span class="endpoint-path">/orders</span>
+        <span class="endpoint-desc">List all orders</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body visible">
+        <button class="btn btn-ghost" onclick="getOrders()">▶ Fetch Orders</button>
+        <div id="orders-list" class="movies-grid">
+          <div class="empty">Click "Fetch Orders" to load orders</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POST place order -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="method-badge post">POST</span>
+        <span class="endpoint-path">/orders</span>
+        <span class="endpoint-desc">Place order — validates via Kafka cache</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body">
+        <div class="field">
+          <label>Movie ID</label>
+          <input type="number" id="ord-movie-id" placeholder="1" />
+        </div>
+        <div class="field">
+          <label>Customer Name</label>
+          <input type="text" id="ord-customer" placeholder="e.g. Alice Mwangi" />
+        </div>
+        <div class="field">
+          <label>Quantity</label>
+          <input type="number" id="ord-qty" placeholder="1" value="1" />
+        </div>
+        <button class="btn btn-blue" onclick="placeOrder()">✓ Place Order</button>
+        <div class="response-label">Response</div>
+        <div class="response-area" id="order-response">—</div>
+      </div>
+    </div>
+
+    <!-- GET available movies (Kafka cache) -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="method-badge get">GET</span>
+        <span class="endpoint-path">/movies</span>
+        <span class="endpoint-desc">Kafka cache — no DB call to Inventory</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body">
+        <div style="background:rgba(74,158,232,0.06); border:1px solid rgba(74,158,232,0.2); border-radius:6px; padding:10px 12px; font-size:12px; color:var(--muted); line-height:1.6;">
+          ℹ️ This list is built <strong style="color:var(--accent2)">purely from Kafka events</strong>.<br>
+          Order service never calls Inventory API — it only knows movies that Inventory published to Kafka.
+        </div>
+        <button class="btn btn-ghost" onclick="getCachedMovies()">▶ View Kafka Cache</button>
+        <div id="cache-list" class="movies-grid">
+          <div class="empty">Click to see what Order service knows via Kafka</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Health checks -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <span class="method-badge get">GET</span>
+        <span class="endpoint-path">/health</span>
+        <span class="endpoint-desc">Service health probes</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body">
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-ghost" onclick="pingHealth('inv')">🎬 Inventory Health</button>
+          <button class="btn btn-ghost" onclick="pingHealth('ord')">🛒 Order Health</button>
+        </div>
+        <div class="response-label">Response</div>
+        <div class="response-area" id="health-response">—</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══ KAFKA EVENT LOG ═══ -->
+<div class="kafka-log">
+  <div class="kafka-log-header">
+    <div class="pulse"></div>
+    <span>KAFKA EVENT LOG</span>
+    <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-left:4px;">topic: movie.events</span>
+    <button class="btn btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 10px;" onclick="clearLog()">Clear</button>
+  </div>
+  <div class="kafka-entries" id="kafka-log">
+    <div class="kafka-entry">
+      <span class="kafka-time">--:--:--</span>
+      <span class="kafka-event-type" style="color:var(--muted)">waiting for events...</span>
+      <span class="kafka-payload">Perform an action above to see Kafka events appear here</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast"></div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────
+function getInvUrl()  { return document.getElementById('inv-url').value.replace(/\/$/, ''); }
+function getOrdUrl()  { return document.getElementById('ord-url').value.replace(/\/$/, ''); }
+
+function saveUrls() {
+  localStorage.setItem('inv-url', getInvUrl());
+  localStorage.setItem('ord-url', getOrdUrl());
+}
+
+// Load saved URLs
+window.addEventListener('load', () => {
+  const inv = localStorage.getItem('inv-url');
+  const ord = localStorage.getItem('ord-url');
+  if (inv) document.getElementById('inv-url').value = inv;
+  if (ord) document.getElementById('ord-url').value = ord;
+  checkHealth();
+});
+
+// ── Section toggle ───────────────────────────────────────────────
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  header.classList.toggle('open');
+  body.classList.toggle('visible');
+}
+
+// ── Toast ────────────────────────────────────────────────────────
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `show ${type}`;
+  setTimeout(() => t.className = '', 2800);
+}
+
+// ── Health check ─────────────────────────────────────────────────
+async function checkHealth() {
+  for (const [svc, id, url] of [
+    ['inv', 'inv-dot', getInvUrl()],
+    ['ord', 'ord-dot', getOrdUrl()]
+  ]) {
+    try {
+      const r = await fetch(`${url}/health`, { signal: AbortSignal.timeout(3000) });
+      document.getElementById(id).className = r.ok ? 'status-dot online' : 'status-dot offline';
+    } catch {
+      document.getElementById(id).className = 'status-dot offline';
+    }
+  }
+}
+
+async function pingHealth(svc) {
+  const url = svc === 'inv' ? getInvUrl() : getOrdUrl();
+  const el = document.getElementById('health-response');
+  el.className = 'response-area loading';
+  el.textContent = '⟳ pinging...';
+  try {
+    const r = await fetch(`${url}/health`);
+    const data = await r.json();
+    el.className = 'response-area success';
+    el.textContent = JSON.stringify(data, null, 2);
+    showToast(`✅ ${svc === 'inv' ? 'Inventory' : 'Order'} service is healthy`, 'success');
+  } catch (e) {
+    el.className = 'response-area error';
+    el.textContent = `❌ ${e.message}`;
+  }
+}
+
+// ── Kafka log ─────────────────────────────────────────────────────
+function logKafkaEvent(eventType, payload) {
+  const log = document.getElementById('kafka-log');
+  const now = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+  // Remove placeholder if present
+  const placeholder = log.querySelector('.kafka-entry:only-child');
+  if (placeholder && placeholder.textContent.includes('waiting')) placeholder.remove();
+
+  const entry = document.createElement('div');
+  entry.className = 'kafka-entry';
+  entry.innerHTML = `
+    <span class="kafka-time">${now}</span>
+    <span class="kafka-event-type">${eventType}</span>
+    <span class="kafka-payload">${JSON.stringify(payload)}</span>
+  `;
+  log.prepend(entry);
+}
+
+function clearLog() {
+  document.getElementById('kafka-log').innerHTML = `
+    <div class="kafka-entry">
+      <span class="kafka-time">--:--:--</span>
+      <span class="kafka-event-type" style="color:var(--muted)">log cleared</span>
+      <span class="kafka-payload"></span>
+    </div>`;
+}
+
+// ── Set response ──────────────────────────────────────────────────
+function setResponse(id, data, ok) {
+  const el = document.getElementById(id);
+  el.className = `response-area ${ok ? 'success' : 'error'}`;
+  el.textContent = JSON.stringify(data, null, 2);
+}
+
+// ── API calls ─────────────────────────────────────────────────────
+
+// GET /movies
+async function getMovies() {
+  try {
+    const r = await fetch(`${getInvUrl()}/movies`);
+    const data = await r.json();
+    renderMovies(data, 'movies-list', true);
+    showToast(`✅ Loaded ${data.length} movies`);
+  } catch(e) {
+    document.getElementById('movies-list').innerHTML =
+      `<div class="empty" style="color:var(--danger)">❌ ${e.message}</div>`;
+    showToast('❌ Cannot reach Inventory service', 'error');
+  }
+}
+
+function renderMovies(movies, containerId, showDelete = false) {
+  const el = document.getElementById(containerId);
+  if (!movies || movies.length === 0) {
+    el.innerHTML = '<div class="empty">No movies found</div>';
+    return;
+  }
+  el.innerHTML = movies.map(m => {
+    const stockClass = m.stock === 0 ? 'zero' : m.stock < 10 ? 'low' : '';
+    return `
+    <div class="movie-card">
+      <div class="movie-id">#${m.id}</div>
+      <div class="movie-info">
+        <div class="title">${m.title}</div>
+        <div class="meta">${m.genre || '—'} · ${m.year || '—'}</div>
+      </div>
+      <span class="genre-tag">${m.genre || 'N/A'}</span>
+      <span class="stock-badge ${stockClass}">${m.stock ?? m.stock} units</span>
+      ${showDelete ? `<button class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="quickDelete(${m.id})">✕</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// POST /movies
+async function createMovie() {
+  const body = {
+    title: document.getElementById('new-title').value,
+    genre: document.getElementById('new-genre').value,
+    year:  parseInt(document.getElementById('new-year').value),
+    stock: parseInt(document.getElementById('new-stock').value),
+  };
+  if (!body.title) { showToast('⚠️ Title is required', 'error'); return; }
+
+  const el = document.getElementById('create-response');
+  el.className = 'response-area loading';
+  el.textContent = '⟳ creating...';
+
+  try {
+    const r = await fetch(`${getInvUrl()}/movies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await r.json();
+    setResponse('create-response', data, r.ok);
+    if (r.ok) {
+      logKafkaEvent('📤 movie.created', { id: data.id, title: data.title, stock: data.stock });
+      showToast(`✅ "${data.title}" added — Kafka event published!`, 'success');
+      getMovies(); // refresh list
+    }
+  } catch(e) {
+    setResponse('create-response', { error: e.message }, false);
+  }
+}
+
+// PUT /movies/:id
+async function updateStock() {
+  const id    = document.getElementById('upd-id').value;
+  const stock = parseInt(document.getElementById('upd-stock').value);
+  if (!id) { showToast('⚠️ Movie ID required', 'error'); return; }
+
+  const el = document.getElementById('update-response');
+  el.className = 'response-area loading';
+  el.textContent = '⟳ updating...';
+
+  try {
+    const r = await fetch(`${getInvUrl()}/movies/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stock })
+    });
+    const data = await r.json();
+    setResponse('update-response', data, r.ok);
+    if (r.ok) {
+      logKafkaEvent('📤 movie.stock_updated', { id: data.id, title: data.title, stock: data.stock });
+      showToast(`✅ Stock updated — Kafka event published!`, 'success');
+      getMovies();
+    }
+  } catch(e) {
+    setResponse('update-response', { error: e.message }, false);
+  }
+}
+
+// DELETE /movies/:id
+async function deleteMovie() {
+  const id = document.getElementById('del-id').value;
+  if (!id) { showToast('⚠️ Movie ID required', 'error'); return; }
+  await doDelete(id, 'delete-response');
+}
+
+async function quickDelete(id) {
+  await doDelete(id, 'delete-response');
+}
+
+async function doDelete(id, responseId) {
+  const el = document.getElementById(responseId);
+  el.className = 'response-area loading';
+  el.textContent = '⟳ deleting...';
+  try {
+    const r = await fetch(`${getInvUrl()}/movies/${id}`, { method: 'DELETE' });
+    if (r.status === 204) {
+      setResponse(responseId, { deleted: true, id: parseInt(id) }, true);
+      logKafkaEvent('📤 movie.deleted', { id: parseInt(id) });
+      showToast(`✅ Movie #${id} deleted — Kafka event → orders cancelled!`, 'success');
+      getMovies();
+    } else {
+      const data = await r.json();
+      setResponse(responseId, data, false);
+    }
+  } catch(e) {
+    setResponse(responseId, { error: e.message }, false);
+  }
+}
+
+// GET /orders
+async function getOrders() {
+  try {
+    const r = await fetch(`${getOrdUrl()}/orders`);
+    const data = await r.json();
+    const el = document.getElementById('orders-list');
+    if (!data || data.length === 0) {
+      el.innerHTML = '<div class="empty">No orders yet</div>';
+      return;
+    }
+    el.innerHTML = data.map(o => `
+      <div class="order-card">
+        <div class="movie-id">#${o.id}</div>
+        <div class="movie-info">
+          <div class="title">${o.customer}</div>
+          <div class="meta">Movie ID: ${o.movie_id} · qty: ${o.quantity ?? 1}</div>
+        </div>
+        <span class="status-badge ${o.status}">${o.status}</span>
+      </div>
+    `).join('');
+    showToast(`✅ Loaded ${data.length} orders`);
+  } catch(e) {
+    document.getElementById('orders-list').innerHTML =
+      `<div class="empty" style="color:var(--danger)">❌ ${e.message}</div>`;
+    showToast('❌ Cannot reach Order service', 'error');
+  }
+}
+
+// POST /orders
+async function placeOrder() {
+  const body = {
+    movie_id:  parseInt(document.getElementById('ord-movie-id').value),
+    customer:  document.getElementById('ord-customer').value,
+    quantity:  parseInt(document.getElementById('ord-qty').value) || 1,
+  };
+  if (!body.customer) { showToast('⚠️ Customer name required', 'error'); return; }
+  if (!body.movie_id) { showToast('⚠️ Movie ID required', 'error'); return; }
+
+  const el = document.getElementById('order-response');
+  el.className = 'response-area loading';
+  el.textContent = '⟳ placing order...';
+
+  try {
+    const r = await fetch(`${getOrdUrl()}/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await r.json();
+    setResponse('order-response', data, r.ok);
+    if (r.ok) {
+      logKafkaEvent('✅ order.confirmed (internal)', { order_id: data.id, customer: data.customer });
+      showToast(`✅ Order confirmed for ${body.customer}!`, 'success');
+      getOrders();
+    } else {
+      showToast(`❌ ${data.error}`, 'error');
+    }
+  } catch(e) {
+    setResponse('order-response', { error: e.message }, false);
+  }
+}
+
+// GET /movies on order service (Kafka cache)
+async function getCachedMovies() {
+  try {
+    const r = await fetch(`${getOrdUrl()}/movies`);
+    const data = await r.json();
+    renderMovies(data, 'cache-list', false);
+    showToast(`✅ Order service knows ${data.length} movies via Kafka`);
+  } catch(e) {
+    document.getElementById('cache-list').innerHTML =
+      `<div class="empty" style="color:var(--danger)">❌ ${e.message}</div>`;
+  }
+}
+
+// Auto-ping health every 30s
+setInterval(checkHealth, 30000);
+</script>
+</body>
+</html>
