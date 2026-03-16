@@ -1,0 +1,75 @@
+# ── ConfigMap: database settings ──
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: movievault
+data:
+  POSTGRES_DB:       movievault
+  POSTGRES_USER:     appuser
+---
+# ── Secret: database password ──
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: movievault
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: "SuperSecret123!"   # Change this!
+---
+# ── StatefulSet: the PostgreSQL pod ──
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: movievault
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+          app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+            - secretRef:
+                name: postgres-secret
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:          # Automatically creates an EBS volume
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 10Gi
+---
+# ── Service: internal DNS for postgres ──
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: movievault
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+  clusterIP: None    # Headless service for StatefulSet
+
+
+
