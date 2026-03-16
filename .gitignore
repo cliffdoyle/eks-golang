@@ -1,0 +1,148 @@
+# ════════════════════════════════════════════════
+#  MovieVault — .gitignore
+#  Stack: Go · Docker · Kubernetes · AWS · Kafka · PostgreSQL
+# ════════════════════════════════════════════════
+
+
+# ── Go ───────────────────────────────────────────
+# Compiled binaries
+inventory-service/inventory-service
+order-service/order-service
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test & coverage output
+*.test
+*.out
+coverage.html
+coverage.txt
+
+# Go workspace (local only)
+go.work
+go.work.sum
+
+# Dependency cache (regenerated via go mod download)
+vendor/
+
+
+# ── AWS — CRITICAL: Never commit these ──────────
+.aws/
+aws-credentials
+*.pem
+*.p12
+*.pfx
+
+# Terraform state (if you ever use Terraform)
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+
+
+# ── Secrets & Environment Variables ─────────────
+.env
+.env.*
+!.env.example          # Allow the example template
+*.env
+secrets.yaml
+secrets.yml
+*-secret.yaml
+*-secret.yml
+aws-auth-configmap.yaml
+
+
+# ── Docker ───────────────────────────────────────
+# Local docker override files
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Docker credentials helper
+.docker/config.json
+
+
+# ── Kubernetes ───────────────────────────────────
+# Local kubeconfig — contains cluster credentials
+kubeconfig
+kubeconfig.yaml
+.kube/
+*-kubeconfig.yaml
+
+# Helm chart dependencies
+charts/
+*.tgz
+
+
+# ── Kafka ────────────────────────────────────────
+# Local Kafka data directories (if running Kafka locally)
+kafka-data/
+zookeeper-data/
+kafka-logs/
+
+
+# ── PostgreSQL ───────────────────────────────────
+# Local database dumps and data
+*.sql.gz
+*.dump
+pgdata/
+postgres-data/
+
+
+# ── IDEs & Editors ───────────────────────────────
+# VS Code
+.vscode/
+!.vscode/extensions.json   # Allow sharing recommended extensions
+
+# JetBrains (GoLand)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim / Neovim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*#
+.#*
+
+
+# ── Operating System ─────────────────────────────
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V8
+.Trashes
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+
+# ── Logs & Temporary Files ───────────────────────
+*.log
+*.tmp
+*.temp
+tmp/
+temp/
+logs/
+
+
+# ── Build Artifacts ──────────────────────────────
+dist/
+bin/
+build/
+out/
