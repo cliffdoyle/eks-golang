@@ -64,13 +64,23 @@ check_aws_auth() {
 # ── Connect kubectl to EKS ────────────────────────────────────────
 connect_kubectl() {
     print_info "Connecting kubectl to $CLUSTER_NAME..."
+
+    # Explicitly set the context to EKS (you have minikube + default also configured)
+    kubectl config use-context \
+        "arn:aws:eks:${AWS_REGION}:${AWS_ACCOUNT_ID}:cluster/${CLUSTER_NAME}" \
+        2>/dev/null || true
+
+    # Update kubeconfig (ignore errors, may already be set)
     aws eks update-kubeconfig \
         --region "$AWS_REGION" \
-        --name "$CLUSTER_NAME" \
-        --quiet 2>/dev/null || \
-        print_fail "Cannot connect to EKS. Check cluster name/region."
-    kubectl cluster-info &>/dev/null || print_fail "kubectl cannot reach the cluster"
-    print_ok "kubectl connected to $CLUSTER_NAME"
+        --name "$CLUSTER_NAME" 2>/dev/null || true
+
+    # Verify connection
+    if kubectl get nodes &>/dev/null; then
+        print_ok "kubectl connected to $CLUSTER_NAME"
+    else
+        print_fail "kubectl cannot reach the cluster. Run: aws eks update-kubeconfig --region us-east-1 --name cliff-eks-cluster"
+    fi
 }
 
 # ── Get current git short SHA for image tagging ──────────────────
