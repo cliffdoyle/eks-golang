@@ -21,6 +21,7 @@ spec:
       containers:
         - name: order-service
           image: 100984278168.dkr.ecr.us-east-1.amazonaws.com/movievault/order-service:latest
+          imagePullPolicy: Always 
           ports:
             - containerPort: 8081
           env:

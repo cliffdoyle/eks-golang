@@ -22,6 +22,7 @@ spec:
         - name: inventory-service
           # Replace 100984278168 with your AWS account ID
           image: 100984278168.dkr.ecr.us-east-1.amazonaws.com/movievault/inventory-service:latest
+          imagePullPolicy: Always 
           ports:
             - containerPort: 8080
           env:
