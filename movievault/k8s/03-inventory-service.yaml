@@ -13,6 +13,11 @@ spec:
       labels:
         app: inventory-service
     spec:
+      tolerations:
+      - key: "eks.amazonaws.com/compute-type"
+        operator: "Equal"
+        value: "auto"
+        effect: "NoSchedule"
       containers:
         - name: inventory-service
           # Replace 100984278168 with your AWS account ID

@@ -123,14 +123,25 @@ func initKafka() {
 // ═══════════════════════════════════════════════════════════
 
 func startServer() {
-	mux := http.NewServeMux()
+    mux := http.NewServeMux()
+    mux.HandleFunc("/health", handleHealth)
+    mux.HandleFunc("/movies", handleMovies)
+    mux.HandleFunc("/movies/", handleMovie)
 
-	mux.HandleFunc("/health",  handleHealth)   // K8s liveness/readiness probe
-	mux.HandleFunc("/movies",  handleMovies)   // GET all, POST create
-	mux.HandleFunc("/movies/", handleMovie)    // GET one, PUT update stock, DELETE
+    // Wrap with CORS — add this
+    handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+        if r.Method == http.MethodOptions {
+            w.WriteHeader(http.StatusOK)
+            return
+        }
+        mux.ServeHTTP(w, r)
+    })
 
-	log.Println("🚀 Inventory service listening on :8080")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+    log.Println("🚀 Inventory service listening on :8080")
+    log.Fatal(http.ListenAndServe(":8080", handler))
 }
 
 // ═══════════════════════════════════════════════════════════

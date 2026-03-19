@@ -268,9 +268,24 @@ func startServer() {
 	mux.HandleFunc("/orders",  handleOrders)  // GET all, POST create
 	mux.HandleFunc("/movies",  handleCachedMovies) // GET available movies (from cache)
 
+	// Wrap with CORS — add this
+    handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+        if r.Method == http.MethodOptions {
+            w.WriteHeader(http.StatusOK)
+            return
+        }
+        mux.ServeHTTP(w, r)
+    })
+
+
 	log.Println("🚀 Order service listening on :8081")
-	log.Fatal(http.ListenAndServe(":8081", mux))
+	log.Fatal(http.ListenAndServe(":8081", handler))
 }
+
+
 
 // ═══════════════════════════════════════════════════════════
 //  HANDLERS
