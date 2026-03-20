@@ -1,0 +1,42 @@
+# Only inventory and order pods can reach postgres
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-access
+  namespace: movievault
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres        # this policy applies TO postgres
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: inventory-service   # allow inventory
+        - podSelector:
+            matchLabels:
+              app: order-service       # allow order
+      ports:
+        - port: 5432
+---
+# Only inventory can publish to kafka
+# Only order can consume from kafka
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kafka-access
+  namespace: movievault
+spec:
+  podSelector:
+    matchLabels:
+      app: kafka
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: inventory-service
+        - podSelector:
+            matchLabels:
+              app: order-service
+      ports:
+        - port: 9092
